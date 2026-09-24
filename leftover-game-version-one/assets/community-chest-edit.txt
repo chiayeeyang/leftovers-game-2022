@@ -1,1 +1,0 @@
-Created with built-in image editing. Prompt: Extract the Community Chest grocery bag from the supplied board; rotate upright; preserve hand-drawn style and contents; show the full object on a transparent background; remove surrounding board, blue background, yellow wedges, black boundary lines, and text.

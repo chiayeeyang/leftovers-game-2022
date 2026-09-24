@@ -1,1 +1,46 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Leftovers! — Your game table</title><meta name="description" content="Roll, rescue, share. The food-saving board game companion with dice, cards and a bank for everyone at the table."><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='16' fill='%23f6ce43'/%3E%3Ctext x='17' y='48' font-size='48' font-weight='900' fill='%23db432c'%3EL%3C/text%3E%3C/svg%3E"><link rel="stylesheet" href="style.css?v=5"><script src="app.js?v=4" defer></script></head><body><header><a class="wordmark" href="./"><span class="wordmark-art" role="img" aria-label="Leftovers"><img src="assets/board.jpg" alt=""></span><small>GOOD FOOD. GREAT MOVES.</small></a><div class="header-right"><span class="edition">THE TABLETOP COMPANION</span><button class="outline" id="new-game">↻ <span>New game</span></button></div></header><main><div class="intro"><div><h1>Waste Less, Play More!</h1></div><p>Unfold the board. Gather your friends!<br>Let’s give good food another chance.</p></div><section class="players-section" aria-label="Players"><div class="section-line"><h2>At the table <span id="player-count">2 players</span></h2><button class="text-button" id="add-player">＋ Add player</button></div><div id="players" class="players"></div></section><div class="game-grid"><section class="dice-panel panel"><div class="section-line"><h2><span class="step">01</span> Make your move</h2><span class="pill">DICE</span></div><div class="dice-stage"><span class="scribble">let’s roll!</span><div id="dice" class="dice" aria-label="Die showing 1"></div><div class="roll-result" id="roll-result" aria-live="polite">Good things are on a roll.</div></div><button class="primary" id="roll">Roll the dice <span>↗</span></button><div class="history-label">RECENT ROLLS <span id="roll-count">No rolls yet</span></div><div class="history" id="history"><span>Your next adventure starts here.</span></div></section><section class="cards-panel"><div class="section-line"><h2><span class="step">02</span> A little plot twist</h2></div><button class="deck chance" data-deck="chance"><span class="deck-meta">EXPECT THE UNEXPECTED <span>↗</span></span><span class="deck-title">Chance</span><span class="chance-art" aria-hidden="true"><img src="assets/takeaway.png" alt=""></span><span class="deck-foot">Take a chance. Save a bite.<b>Draw a card →</b></span></button><button class="deck community" data-deck="community"><span class="deck-meta">GOOD FOOD BRINGS US TOGETHER <span>↗</span></span><span class="deck-title">Community<br>Chest</span><span class="board-crop" aria-hidden="true"><img src="assets/board.jpg" alt=""></span><span class="deck-foot">A little sharing goes a long way.<b>Draw a card →</b></span></button></section><section class="bank-panel panel"><div class="section-line"><h2><span class="step">03</span> Your little bank</h2><button id="edit-player" class="text-button" aria-label="Edit selected player">Edit ↗</button></div><div class="balance-card"><div><span id="bank-name">Player 1</span><span>GAME MONEY</span></div><strong id="balance">£1,500</strong></div><label class="amount-label" for="amount">Transaction amount</label><div class="amount-input"><span>£</span><input id="amount" inputmode="decimal" type="number" min="0.01" max="1000000" step="0.01" placeholder="0" aria-describedby="bank-status"></div><div class="quick-amounts"><button data-amount="10">+10</button><button data-amount="50">+50</button><button data-amount="100">+100</button><button data-amount="200">+200</button></div><div class="transaction-buttons"><button id="subtract">− Pay</button><button id="add">＋ Collect</button></div><p id="bank-status" class="bank-status" aria-live="polite">Select a player, then pay or collect.</p><div class="history-label">LAST TRANSACTION</div><p id="last-transaction" class="last-transaction">A fresh start. Make it a good one.</p></section></div><footer><span class="footer-brand">Every bite counts. Every move matters.</span><span>Made for your board. Saved on this device.</span><button class="text-button" id="how-to">How to play ↗</button></footer></main><dialog id="modal"><div id="modal-content"></div><button class="close-modal" aria-label="Close dialog">×</button></dialog><div id="toast" role="status"></div></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#ffd129">
+  <meta name="description" content="Your tabletop companion: draw a card, keep track of your money, and roll a die.">
+  <title>Game Night — Monopoly-style companion</title>
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23ffd129'/%3E%3Crect x='6' y='6' width='20' height='20' rx='4' fill='white'/%3E%3Ccircle cx='12' cy='12' r='2'/%3E%3Ccircle cx='20' cy='20' r='2'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <div class="shell">
+    <header><a href="./" class="wordmark" aria-label="Leftovers home"><span class="wordmark-art"><img src="assets/board.jpg" alt="Leftovers!"></span></a></header>
+    <main>
+      <section class="cards" aria-label="Draw a card">
+        <div class="section-heading"><h1>A little luck.</h1><span>Pick a card</span></div>
+        <div class="card-pair">
+          <button class="deck chance" data-deck="chance" aria-label="Draw a Chance card"><span class="card-front"><span class="deck-name">CHANCE</span><span class="chance-art" aria-hidden="true"><img src="assets/takeaway.png" alt=""></span><span class="deck-action">Draw a card <span>↗</span></span></span><span class="card-back" aria-hidden="true"><span class="scenario-deck">CHANCE</span><strong class="scenario-title"></strong><span class="scenario-message"></span><span class="flip-hint">Tap to turn over</span></span></button>
+          <button class="deck community" data-deck="community" aria-label="Draw a Community Chest card"><span class="card-front"><span class="deck-name">COMMUNITY<br>CHEST</span><span class="chest-art" aria-hidden="true"><img src="assets/community-chest-original.png" alt=""></span><span class="deck-action">Draw a card <span>↗</span></span></span><span class="card-back" aria-hidden="true"><span class="scenario-deck">COMMUNITY CHEST</span><strong class="scenario-title"></strong><span class="scenario-message"></span><span class="flip-hint">Tap to turn over</span></span></button>
+        </div>
+      </section>
+      <section class="money" aria-labelledby="money-heading">
+        <div class="money-label"><h2 id="money-heading">YOUR MONEY</h2><button id="reset" class="reset" aria-label="Reset balance to 1500" title="Reset balance to 1500">↺</button></div>
+        <div class="calculator">
+          <div class="display"><span id="expression">STARTING BALANCE</span><output id="balance" aria-live="polite">1500</output></div>
+          <div class="keypad" aria-label="Balance calculator">
+            <button data-key="7">7</button><button data-key="8">8</button><button data-key="9">9</button><button data-key="+" class="operator" aria-label="Add">+</button>
+            <button data-key="4">4</button><button data-key="5">5</button><button data-key="6">6</button><button data-key="-" class="operator" aria-label="Subtract">−</button>
+            <button data-key="1">1</button><button data-key="2">2</button><button data-key="3">3</button><button data-key="*" class="operator" aria-label="Multiply">×</button>
+            <button data-key="0">0</button><button data-key="AC" class="clear" aria-label="Clear pending calculation">AC</button><button data-key="/" class="operator" aria-label="Divide">÷</button><button data-key="=" class="equals" aria-label="Equals">=</button>
+          </div>
+        </div>
+        <div class="quick-actions"><button id="pass-go">Pass GO <strong>+200</strong></button><button id="jail">Jail <strong>−50</strong></button></div>
+        <p id="calculator-status" class="calculator-status" role="status">Choose + or −, enter an amount, then =.</p>
+      </section>
+      <section class="dice-section" aria-label="Roll one die">
+        <div class="section-heading"><h2>Make your move.</h2><span>One roll. New possibilities.</span></div>
+        <div class="dice-row"><div id="die" class="die" role="img" aria-label="Die showing 2"></div><div class="roll-controls"><button id="roll">Roll Dice <span aria-hidden="true">↗</span></button><p id="roll-result" class="sr-only" role="status"></p></div></div>
+      </section>
+    </main>
+  </div>
+  <span id="card-announcement" class="sr-only" role="status"></span>
+</body>
+</html>

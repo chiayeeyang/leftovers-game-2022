@@ -1,45 +1,136 @@
-const $=s=>document.querySelector(s);const colors=['#edafc2','#94c9b5','#9ebbdc','#f0ac69','#ceb3df','#b8cb75'];const money=n=>'£'+n.toLocaleString('en-GB',{maximumFractionDigits:2});const initial=()=>({players:Array.from({length:2},(_,i)=>({id:crypto.randomUUID(),name:`Player ${i+1}`,balance:1500})),selected:0,rolls:[],dice:[1],transactions:[],decks:{chance:[],community:[]}});let state=initial();
-function die(n){const positions={1:[5],2:[1,9],3:[1,5,9],4:[1,3,7,9],5:[1,3,5,7,9],6:[1,3,4,6,7,9]};return `<div class="die">${positions[n].map(p=>`<i class="pip" style="grid-area:${Math.ceil(p/3)}/${(p-1)%3+1}"></i>`).join('')}</div>`}
-function render(){const p=state.players[state.selected];$('#players').replaceChildren(...state.players.map((p,i)=>{const b=document.createElement('div');b.className='player'+(i===state.selected?' selected':'');b.innerHTML=`<span class="avatar" style="background:${colors[i%6]}">${i+1}</span><span class="player-info"><button class="player-name" type="button"></button><strong>${money(p.balance)}</strong></span>${i===state.selected?'<span class="selected-mark">✓</span>':''}`;const name=b.querySelector('.player-name');name.textContent=p.name+' ✎';name.setAttribute('aria-label','Edit name for '+p.name);name.onclick=()=>{state.selected=i;render();save();editPlayer()};const select=document.createElement('button');select.type='button';select.className='player-select';select.setAttribute('aria-label','Select '+p.name);select.setAttribute('aria-pressed',i===state.selected);select.onclick=()=>{state.selected=i;render();save()};b.prepend(select);return b}));$('#player-count').textContent=state.players.length+' players';$('#bank-name').textContent=p.name;$('#balance').textContent=money(p.balance);$('#dice').innerHTML=state.dice.map(die).join('');$('#dice').setAttribute('aria-label',`Die showing ${state.dice.join(' and ')}`);$('#history').innerHTML=state.rolls.length?state.rolls.slice(0,6).map(r=>`<b title="${r.dice.join(' + ')}">${r.dice[0]}</b>`).join(''):'<span>Your next adventure starts here.</span>';$('#roll-count').textContent=state.rolls.length?`${state.rolls.length} roll${state.rolls.length===1?'':'s'}`:'No rolls yet';const last=state.transactions.find(t=>t.playerId===p.id);$('#last-transaction').textContent=last?last.text:'A fresh start. Make it a good one.'}
-
-const decks={chance:[
-['Surprise supper!', 'You rescued a Too Good To Go surprise bag. Turn the day’s surplus into tonight’s feast.',100],
-['Banana comeback','Those spotty bananas became a beautiful banana loaf. Collect a little baking bonus.',50],
-['A fridge too far','You bought more than you could use. Pay for the wasted groceries, then plan your next shop.',-50],
-['Soup-er saver','You turned leftover vegetables into a brilliant soup. Collect your kitchen creativity bonus.',75],
-['Forgotten greens','Your greens wilted at the back of the fridge. Pay £25 and give your fridge a check before shopping.',-25],
-['Bread, reborn','Yesterday’s bread is today’s crunchy croutons. Collect £50 for making the most of it.',50],
-['Freezer to the rescue','You froze spare portions for another day. A future dinner and a saving: collect £100.',100],
-['Pass the pantry','Advance to GO on the physical board. Collect £200 here, just once.',200]
-],community:[
-['Sharing is caring','You shared spare produce with a neighbour through OLIO. Collect a community thank-you.',100],
-['A seat at the table','Your group supports ShareTheMeal’s food-sharing mission. Contribute £50 in game money.',-50],
-['The great potluck','Everyone brought a dish made from leftovers. Collect £75 for bringing the table together.',75],
-['Neighbourhood harvest','A neighbour shares their extra garden vegetables. Collect £50 and plan something seasonal.',50],
-['Community kitchen','Help stock the community kitchen. Contribute £25 in game money.',-25],
-['Pasta, take two','Leftover pasta became a tasty baked dish for friends. Collect £50 for your creativity.',50],
-['The sharing shelf','You set up a shelf for sharing unopened pantry extras. Collect £100 for your good idea.',100],
-['Recipe swap','Share one leftover-food idea with the table. Collect £25 for passing on a little inspiration.',25]
-]};
-const key='leftovers-game-v2-single-die';let rolling=false;let toastTimer;
-function save(){try{localStorage.setItem(key,JSON.stringify(state))}catch{toast('This browser cannot save. Keep this tab open.')}}
-function validState(s){return s&&Array.isArray(s.players)&&s.players.length>=1&&s.players.length<=5&&s.players.every(p=>typeof p.id==='string'&&typeof p.name==='string'&&p.name.trim()&&p.name.length<=24&&Number.isFinite(p.balance)&&Math.abs(p.balance)<=1e9)&&Number.isInteger(s.selected)&&s.selected>=0&&s.selected<s.players.length&&Array.isArray(s.dice)&&s.dice.length===1&&s.dice.every(n=>Number.isInteger(n)&&n>=1&&n<=6)&&Array.isArray(s.rolls)&&s.rolls.every(r=>Array.isArray(r.dice)&&r.dice.length===1&&r.dice.every(n=>Number.isInteger(n)&&n>=1&&n<=6))&&Array.isArray(s.transactions)&&s.transactions.every(t=>typeof t.text==='string')&&s.decks&&['chance','community'].every(k=>Array.isArray(s.decks[k])&&s.decks[k].every(n=>Number.isInteger(n)&&n>=0&&n<decks[k].length))}
-try{const saved=JSON.parse(localStorage.getItem(key));if(validState(saved))state=saved}catch{}
-function toast(text){$('#toast').textContent=text;$('#toast').style.display='block';clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('#toast').style.display='none',3000)}
-function openModal(html){$('#modal-content').innerHTML=html;const title=$('#modal-content h2');if(title){title.id='dialog-title';$('#modal').setAttribute('aria-labelledby','dialog-title');}if(!$('#modal').open)$('#modal').showModal()}
-function closeModal(){$('#modal').close()}
-$('.close-modal').onclick=closeModal;
-function randomInt(max){const a=new Uint32Array(1);let n;const limit=Math.floor(4294967296/max)*max;do{crypto.getRandomValues(a);n=a[0]}while(n>=limit);return n%max}
-async function rollDice(){if(rolling)return;rolling=true;$('#roll').disabled=true;$('#dice').classList.add('rolling');$('#roll-result').textContent='A little shake of good fortune…';await new Promise(r=>setTimeout(r,650));state.dice=[randomInt(6)+1];state.rolls.unshift({dice:[...state.dice]});state.rolls=state.rolls.slice(0,100);render();const total=state.dice[0];$('#roll-result').textContent=`Move ${total} ${total===1?'space':'spaces'} on your board.`;$('#dice').classList.remove('rolling');$('#roll').disabled=false;rolling=false;save();return {dice:state.dice,total}}
-$('#roll').onclick=rollDice;
-function transact(delta,description,playerId=state.players[state.selected].id){const p=state.players.find(p=>p.id===playerId);if(!p||!Number.isFinite(delta)||delta===0||Math.abs(delta)>1000000||Math.abs(p.balance+delta)>1e9)throw Error('Enter an amount from £0.01 to £1,000,000.');p.balance=Math.round((p.balance+delta)*100)/100;state.transactions.unshift({playerId:p.id,text:`${delta>0?'Collected':'Paid'} ${money(Math.abs(delta))} · ${description}`});state.transactions=state.transactions.slice(0,100);save();render();$('#bank-status').textContent=`${p.name}: ${delta>0?'collected':'paid'} ${money(Math.abs(delta))}.`;return p.balance}
-function manualTransaction(sign){const n=Number($('#amount').value);if(!Number.isFinite(n)||n<.01||n>1e6||Math.abs(n*100-Math.round(n*100))>.00001){$('#bank-status').textContent='Enter £0.01–£1,000,000, with up to 2 decimal places.';$('#amount').focus();return}try{transact(sign*n,'Bank transaction');$('#amount').value=''}catch(e){$('#bank-status').textContent=e.message}}
-$('#add').onclick=()=>manualTransaction(1);$('#subtract').onclick=()=>manualTransaction(-1);document.querySelectorAll('[data-amount]').forEach(b=>b.onclick=()=>{$('#amount').value=Math.min(1000000,Math.round(((Number($('#amount').value)||0)+Number(b.dataset.amount))*100)/100)});
-function editPlayer(isNew=false){if(isNew&&state.players.length>=5){toast('The table is full: up to 5 players.');return}const p=isNew?{name:`Player ${state.players.length+1}`,balance:1500}:state.players[state.selected];openModal(`<div class="card-kicker">AT THE TABLE</div><h2>${isNew?'Make room for one more.':'Make it your own.'}</h2><form id="player-form"><label>Player name<input id="player-name" maxlength="24" required autocomplete="off"></label><label>Starting / current balance (£)<input id="player-balance" type="number" min="-1000000" max="1000000" step="0.01" required></label><p class="modal-error" id="edit-error" role="alert"></p><button class="primary" type="submit">${isNew?'Add player':'Save changes'}</button></form>${!isNew&&state.players.length>1?'<button class="outline" id="remove-player">Remove player</button>':''}`);if($('#remove-player'))$('#remove-player').onclick=()=>{openModal('<h2>Remove this player?</h2><p>Their balance will leave this game. The other players keep their progress.</p><button class="primary" id="confirm-remove">Remove player</button><button class="outline" id="cancel-remove">Keep player</button>');$('#cancel-remove').onclick=closeModal;$('#confirm-remove').onclick=()=>{state.players.splice(state.selected,1);state.selected=0;save();render();closeModal()}};$('#player-name').value=p.name;$('#player-balance').value=p.balance;$('#player-form').onsubmit=e=>{e.preventDefault();const name=$('#player-name').value.trim(),balance=Number($('#player-balance').value);if(!name||name.length>24||!Number.isFinite(balance)||Math.abs(balance)>1e6){$('#edit-error').textContent='Enter a name and a balance between −£1,000,000 and £1,000,000.';return}if(isNew){state.players.push({id:crypto.randomUUID(),name,balance});state.selected=state.players.length-1}else{p.name=name;p.balance=Math.round(balance*100)/100;state.transactions.unshift({playerId:p.id,text:`Balance set to ${money(p.balance)} · Player settings`})}save();render();closeModal()}}
-$('#edit-player').onclick=()=>editPlayer();$('#add-player').onclick=()=>editPlayer(true);
-function drawCard(type){if(!decks[type])throw Error('Choose chance or community.');if(!state.decks[type].length){state.decks[type]=decks[type].map((_,i)=>i);for(let i=state.decks[type].length-1;i>0;i--){let j=randomInt(i+1);[state.decks[type][i],state.decks[type][j]]=[state.decks[type][j],state.decks[type][i]]}}const card=decks[type][state.decks[type].pop()];save();const player=state.players[state.selected];openModal(`<div class="card-kicker">${type==='chance'?'Chance':'Community Chest'} · ${state.decks[type].length} left in deck</div><h2>${card[0]}</h2><p>${card[1]}</p><div class="card-value">${card[2]>0?'Collect':'Pay'} ${money(Math.abs(card[2]))}</div><p id="card-player"></p><button class="primary" id="apply-card">Apply to balance</button><button class="outline" id="skip-card">Done without applying</button><p class="modal-error" id="card-error" role="alert"></p>`);$('#card-player').textContent=`For ${player.name} · game money only`;let applied=false;$('#apply-card').onclick=()=>{if(applied)return;try{transact(card[2],card[0],player.id);applied=true;closeModal();toast(`Applied to ${player.name}’s balance`)}catch(e){$('#card-error').textContent=e.message}};$('#skip-card').onclick=closeModal;return {deck:type,title:card[0],amount:card[2],status:'drawn, not yet applied'}}
-document.querySelectorAll('[data-deck]').forEach(b=>b.onclick=()=>drawCard(b.dataset.deck));
-$('#new-game').onclick=()=>{openModal('<div class="card-kicker">A FRESH START</div><h2>Another helping?</h2><p>Reset all balances to £1,500, clear transactions and dice history, and reshuffle both decks. Your player names stay at the table.</p><button class="primary" id="confirm-reset">Start a new game</button><button class="outline" id="cancel-reset">Keep playing</button>');$('#cancel-reset').onclick=closeModal;$('#confirm-reset').onclick=()=>{if(rolling){toast('Wait for the dice to finish rolling.');return}state={...initial(),players:state.players.map(p=>({...p,balance:1500}))};$('#amount').value='';$('#bank-status').textContent='A fresh game. Everyone starts with £1,500.';$('#roll-result').textContent='Good things are on a roll.';save();render();closeModal();toast('New game, fresh possibilities.')}};
-$('#how-to').onclick=()=>openModal('<div class="card-kicker">FROM TRAY TO TABLE</div><h2>Good food. Great company.</h2><p><b>1. Gather your players.</b> Tap a player to select them. Edit their name and balance, or add up to 5 players.</p><p><b>2. Roll and move.</b> Roll the die and move your token on the printed board. Follow the instructions on the space.</p><p><b>3. Draw a little inspiration.</b> Tap the matching deck when you land on Chance or Community Chest. Apply the card once, or follow it on the board.</p><p><b>4. Keep the bank in balance.</b> Enter an amount to pay or collect for the selected player. Passing GO? Collect £200 once.</p><p>These original companion cards use fictional game money. No real purchases or donations are made. Agree any house rules before playing.</p><p><small>Your game saves in this browser on this device. New game keeps names and resets the rest.</small></p>');
-render();
-if(document.modelContext?.registerTool){const lifecycle=new AbortController();for(const tool of [{name:'read_game_state',description:'Read players, balances, selected player and recent dice rolls.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:{readOnlyHint:true},execute:()=>({players:state.players,selectedPlayer:state.players[state.selected].name,rolls:state.rolls.slice(0,6)})},{name:'roll_game_dice',description:'Roll the die and record the result in the game. Does not move a physical token or change a balance.',inputSchema:{type:'object',properties:{},additionalProperties:false},execute:rollDice}]){try{Promise.resolve(document.modelContext.registerTool({...tool,execute:(input)=>{if(!input||typeof input!=='object'||Array.isArray(input)||Object.keys(input).length)throw Error('This action accepts an empty object only.');return tool.execute(input)}},{signal:lifecycle.signal})).catch(()=>{})}catch{}}window.addEventListener('pagehide',()=>lifecycle.abort(),{once:true})}
+'use strict';
+const $ = selector => document.querySelector(selector);
+let balance = 1500, entry = '', operation = null, dieValue = 2, rolling = false;
+const symbols = {'+': '+', '-': '−', '*': '×', '/': '÷'};
+const format = value => String(value);
+const status = message => { $('#calculator-status').textContent = message; };
+function renderCalculator() {
+  $('#balance').textContent = entry || format(balance);
+  $('#expression').textContent = operation ? `${format(balance)} ${symbols[operation]}` : 'YOUR BALANCE';
+  document.querySelectorAll('.operator').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.key === operation)));
+}
+function calculate() {
+  if (!operation || entry === '') return true;
+  const value = Number(entry);
+  if (operation === '/' && value === 0) { status('Cannot divide by zero. Press AC to cancel, or enter a new amount.'); entry = ''; renderCalculator(); return false; }
+  let next = operation === '+' ? balance + value : operation === '-' ? balance - value : operation === '*' ? balance * value : balance / value;
+  next = Math.round((next + Number.EPSILON) * 100) / 100;
+  if (!Number.isFinite(next) || Math.abs(next) > 999999999) { status('That result is too large. Press AC to cancel.'); return false; }
+  balance = next; entry = ''; operation = null; status('Balance updated. Ready for your next move.'); return true;
+}
+function press(key) {
+  if (/^[0-9]$/.test(key)) {
+    if (!operation) { status('Choose +, −, × or ÷ first to change your balance.'); return; }
+    if (entry.replace('.', '').length >= 9 || (entry.includes('.') && entry.split('.')[1].length >= 2)) return;
+    entry = entry === '0' ? key : entry + key;
+  } else if (key === '.') { if (operation && !entry.includes('.')) entry = (entry || '0') + '.';
+  } else if (key === 'Backspace') { entry = entry.slice(0, -1);
+  } else if (key === 'AC') { entry = ''; operation = null; status('Calculation cleared. Your balance is unchanged.');
+  } else if (key === '=') { calculate();
+  } else if (Object.hasOwn(symbols, key)) { if (!calculate()) { renderCalculator(); return; } operation = key; status('Enter an amount, then press =.'); }
+  renderCalculator();
+}
+function quickTransaction(amount) {
+  const next = Math.round((balance + amount) * 100) / 100;
+  if (Math.abs(next) > 999999999) { status('That result is too large.'); return; }
+  balance = next; entry = ''; operation = null; renderCalculator();
+  status(amount > 0 ? 'Passed GO. Collected 200.' : 'Jail fee paid. Deducted 50.');
+}
+$('#pass-go').addEventListener('click', () => quickTransaction(200));
+$('#jail').addEventListener('click', () => quickTransaction(-50));
+document.querySelectorAll('[data-key]').forEach(button => button.addEventListener('click', () => press(button.dataset.key)));
+$('#reset').addEventListener('click', () => { if (confirm('Start over with a balance of 1500?')) { balance = 1500; entry = ''; operation = null; renderCalculator(); status('Fresh start. Your balance is 1500.'); } });
+document.addEventListener('keydown', event => {
+  if (event.ctrlKey || event.metaKey || event.altKey) return;
+  if (event.key === 'Enter' && event.target.closest('button,a')) return;
+  const key = event.key === 'Enter' ? '=' : event.key === 'Escape' || event.key === 'Delete' ? 'AC' : event.key;
+  if (/^[0-9.+*/=-]$/.test(key) || ['AC','Backspace'].includes(key)) { event.preventDefault(); press(key); }
+});
+function randomInt(max) {
+  const values = new Uint32Array(1), limit = Math.floor(4294967296 / max) * max;
+  do { crypto.getRandomValues(values); } while (values[0] >= limit);
+  return values[0] % max;
+}
+function renderDie(value) {
+  const positions = {1:[5],2:[1,9],3:[1,5,9],4:[1,3,7,9],5:[1,3,5,7,9],6:[1,3,4,6,7,9]};
+  $('#die').replaceChildren(...positions[value].map(position => { const pip = document.createElement('span'); pip.className = 'pip'; pip.style.gridArea = `${Math.ceil(position / 3)} / ${(position - 1) % 3 + 1}`; return pip; }));
+  $('#die').setAttribute('aria-label', `Die showing ${value}`);
+}
+async function rollDice() {
+  if (rolling) throw new Error('A roll is already in progress.');
+  rolling = true; $('#roll').disabled = true; $('#die').classList.add('rolling'); $('#roll-result').textContent = 'Rolling…';
+  await new Promise(resolve => setTimeout(resolve, matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 550));
+  dieValue = randomInt(6) + 1; renderDie(dieValue);
+  $('#die').classList.remove('rolling'); $('#roll').disabled = false; rolling = false;
+  $('#roll-result').textContent = `You rolled ${dieValue}. Move ${dieValue} ${dieValue === 1 ? 'space' : 'spaces'}!`;
+  return {value: dieValue};
+}
+$('#roll').addEventListener('click', () => { void rollDice(); });
+const decks = {
+  chance: [
+    ['Banana comeback', 'You bake overripe bananas into banana bread. Collect 50.'],
+    ['Forgotten greens', 'Your salad spoils at the back of the fridge. Pay 25.'],
+    ['Surprise supper', 'A Too Good To Go bag becomes tonight’s dinner. Collect 75.'],
+    ['Double shopping', 'You buy ingredients you already have. Pay 30.'],
+    ['Freezer hero', 'You freeze spare portions before they go to waste. Collect 100.'],
+    ['Bread reborn', 'You turn stale bread into crunchy croutons. Collect 25.'],
+    ['Too much pasta', 'You cook too much and throw the extra away. Pay 40.'],
+    ['Soup from scraps', 'Your usable vegetable trimmings become a tasty stock. Collect 50.'],
+    ['Meal-plan magic', 'You plan dinners around what is already in your fridge. Collect 100.'],
+    ['The forgotten box', 'You leave your restaurant leftovers behind. Pay 20.']
+  ],
+  community: [
+    ['Share the harvest', 'You share spare garden vegetables with neighbours. Collect 50.'],
+    ['OLIO rescue', 'You share unopened surplus food through OLIO. Collect 75.'],
+    ['Leftover potluck', 'Everyone brings a dish made with food they already have. Collect 25 from each player.'],
+    ['Community fridge', 'You help stock a community fridge with suitable surplus food. Collect 100.'],
+    ['Kitchen supplies', 'Help buy reusable containers for the community kitchen. Pay 50.'],
+    ['Recipe exchange', 'Share a leftover-food recipe idea with the table. Collect 25.'],
+    ['Market rescue', 'You help a stallholder share unsold produce. Collect 75.'],
+    ['Sharing shelf', 'Your building starts a pantry-sharing shelf. Collect 50.'],
+    ['Workshop day', 'Help fund a local food-storage workshop. Pay 25.'],
+    ['Pass it on', 'You teach a neighbour how to plan portions and waste less. Collect 50.']
+  ]
+};
+const remainingCards = {chance: [], community: []};
+const lastCard = {chance: -1, community: -1};
+function drawCard(deck) {
+  const button = document.querySelector(`[data-deck="${deck}"]`);
+  const front = button.querySelector('.card-front');
+  const back = button.querySelector('.card-back');
+  const label = deck === 'chance' ? 'Chance' : 'Community Chest';
+  if (button.classList.contains('flipped')) {
+    button.classList.remove('flipped'); front.setAttribute('aria-hidden', 'false'); back.setAttribute('aria-hidden', 'true');
+    button.setAttribute('aria-label', `Draw a ${label} card`); return;
+  }
+  if (!remainingCards[deck].length) {
+    const cards = decks[deck].map((_, index) => index);
+    for (let i = cards.length - 1; i > 0; i--) { const j = randomInt(i + 1); [cards[i], cards[j]] = [cards[j], cards[i]]; }
+    if (cards[cards.length - 1] === lastCard[deck]) [cards[0], cards[cards.length - 1]] = [cards[cards.length - 1], cards[0]];
+    remainingCards[deck] = cards;
+  }
+  const index = remainingCards[deck].pop(); lastCard[deck] = index;
+  const [title, message] = decks[deck][index];
+  back.querySelector('.scenario-title').textContent = title;
+  back.querySelector('.scenario-message').textContent = message;
+  button.classList.add('flipped'); front.setAttribute('aria-hidden', 'true'); back.setAttribute('aria-hidden', 'false');
+  button.setAttribute('aria-label', `${label}: ${title}. ${message} Turn card face down.`);
+  $('#card-announcement').textContent = `${label}: ${title}. ${message}`;
+}
+document.querySelectorAll('[data-deck]').forEach(button => button.addEventListener('click', () => drawCard(button.dataset.deck)));
+renderDie(dieValue);
+// Progressive enhancement; browsers without WebMCP use the ordinary controls.
+if (document.modelContext?.registerTool) {
+  const lifecycle = new AbortController();
+  const tools = [
+    {name:'read_game_state',description:'Read the current balance and single die value.',annotations:{readOnlyHint:true},execute:() => ({balance,dieValue})},
+    {name:'roll_die',description:'Roll one six-sided die and update its visible pips.',annotations:{readOnlyHint:false},execute:rollDice}
+  ];
+  for (const tool of tools) {
+    try { Promise.resolve(document.modelContext.registerTool({...tool,inputSchema:{type:'object',properties:{},additionalProperties:false},execute:input => {
+      if (!input || typeof input !== 'object' || Array.isArray(input) || Object.keys(input).length) throw new Error('Expected an empty object.');
+      return tool.execute();
+    }},{signal:lifecycle.signal})).catch(() => {}); } catch { /* Optional API. */ }
+  }
+  addEventListener('pagehide', () => lifecycle.abort(), {once:true});
+}
